@@ -8,6 +8,7 @@ from sentence_transformers import SentenceTransformer
 import numpy as np
 
 from ..config import rag_config
+import asyncio
 
 
 class VectorStore:
@@ -67,4 +68,10 @@ class VectorStore:
                     continue
                 seen.add(i)
                 results.append(self.docs[i][1])
-        return results 
+        return results
+
+    async def abuild_from_dir(self, dir_path: str) -> None:
+        await asyncio.to_thread(self.build_from_dir, dir_path)
+
+    async def asearch(self, queries: List[str], top_k: int | None = None) -> List[str]:
+        return await asyncio.to_thread(self.search, queries, top_k) 

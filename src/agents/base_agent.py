@@ -8,3 +8,6 @@ class BaseAgent:
     def act(self, **kwargs):
         raise NotImplementedError
 
+    async def aact(self, **kwargs):
+        raise NotImplementedError
+

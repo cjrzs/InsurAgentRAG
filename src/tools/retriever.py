@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from typing import List, Tuple
+import asyncio
 
 _KB_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "knowledge")
 
@@ -35,4 +36,7 @@ class KnowledgeBase:
             if score:
                 scored.append((score, f"{name}:\n{content}"))
         scored.sort(key=lambda x: x[0], reverse=True)
-        return [c for _, c in scored[:top_k]] 
+        return [c for _, c in scored[:top_k]]
+
+    async def aretrieve(self, hints: List[str], top_k: int = 3) -> List[str]:
+        return await asyncio.to_thread(self.retrieve, hints, top_k) 

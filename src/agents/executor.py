@@ -4,6 +4,7 @@ from typing import List
 
 from .base_agent import BaseAgent
 from ..models.schemas import StrategyRecommendation, PurchaseStep
+import asyncio
 
 
 class ExecutionAgent(BaseAgent):
@@ -21,4 +22,7 @@ class ExecutionAgent(BaseAgent):
             refined.append(PurchaseStep(phase=step.phase, actions=actions))
 
         rec.purchase_plan = refined
-        return rec 
+        return rec
+
+    async def aact(self, rec: StrategyRecommendation) -> StrategyRecommendation:  # type: ignore[override]
+        return await asyncio.to_thread(self.act, rec) 

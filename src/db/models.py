@@ -9,6 +9,7 @@ from ..config import get_database_url
 from ..models.schemas import (
     InsuredInfo, FinancialStatus, InsuranceGoal, ExistingPolicy, UserRequest
 )
+import asyncio
 
 
 class Base(DeclarativeBase):
@@ -90,4 +91,7 @@ def fetch_user_request(user_id: int) -> Optional[UserRequest]:
         if not u:
             return None
         ps = s.query(Policy).filter(Policy.user_id == user_id).all()
-        return _to_user_request(u, ps) 
+        return _to_user_request(u, ps)
+
+async def afetch_user_request(user_id: int) -> Optional[UserRequest]:
+    return await asyncio.to_thread(fetch_user_request, user_id) 

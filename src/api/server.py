@@ -4,8 +4,9 @@ import json
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from ..db.models import fetch_user_request
+from ..db.models import afetch_user_request
 from ..graph.pipeline_graph import PipelineGraph
+import asyncio
 
 
 class GenerateRequest(BaseModel):
@@ -16,14 +17,12 @@ app = FastAPI(title="InsurAgentRAG API", version="0.1.0")
 
 
 @app.post("/strategy/generate")
-def generate_strategy(body: GenerateRequest):
-    req = fetch_user_request(body.user_id)
+async def generate_strategy(body: GenerateRequest):
+    req = await afetch_user_request(body.user_id)
     if not req:
         raise HTTPException(status_code=404, detail="User not found")
 
-    graph = PipelineGraph().build()
-    state = {"req": req}
-    out = graph.invoke(state)
+    out = await PipelineGraph().arun(req)
     final_json = out.get("final_json")
     try:
         data = json.loads(final_json)

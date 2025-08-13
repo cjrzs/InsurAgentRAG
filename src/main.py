@@ -3,7 +3,8 @@ from __future__ import annotations
 import json
 
 from .models.schemas import UserRequest, InsuredInfo, FinancialStatus, InsuranceGoal
-from .pipeline import run_pipeline
+from .graph.pipeline_graph import PipelineGraph
+import asyncio
 
 
 def demo_request() -> UserRequest:
@@ -34,7 +35,12 @@ def demo_request() -> UserRequest:
     )
 
 
-if __name__ == "__main__":
+async def amain() -> None:
     req = demo_request()
-    rec = run_pipeline(req)
-    print(json.dumps(rec.model_dump(), ensure_ascii=False, indent=2))
+    out = await PipelineGraph().arun(req)
+    final_json = out.get("final_json")
+    print(json.dumps({"raw": final_json}, ensure_ascii=False, indent=2))
+
+
+if __name__ == "__main__":
+    asyncio.run(amain())

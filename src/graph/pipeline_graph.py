@@ -12,6 +12,7 @@ from ..agents.prompts import PLANNER_SYSTEM, STRATEGY_SYSTEM, RISK_SYSTEM, REVIE
 from ..tools.local_llm import LocalQwen
 from ..rag.vectorstore import VectorStore
 from ..models.schemas import UserRequest, StrategyRecommendation
+import asyncio
 
 
 class PipelineGraph:
@@ -88,4 +89,35 @@ class PipelineGraph:
         graph.add_edge("strategy", "risk")
         graph.add_edge("risk", "review")
         graph.add_edge("review", END)
-        return graph.compile() 
+        return graph.compile()
+
+    async def arun(self, req: UserRequest) -> Dict[str, Any]:
+        # 使用与同步图逻辑等价的异步实现，避免阻塞事件循环
+        hints = list(set((req.knowledge_hints or []) + req.goals.goals))
+        ctx_docs = await self.vs.asearch(hints, top_k=4)
+
+        user_prompt_strategy = (
+            f"受保人信息: {req.insured.model_dump()}\n"
+            f"财务状况: {req.finance.model_dump()}\n"
+            f"保险目的: {req.goals.model_dump()}\n"
+            f"已有保单: {[p.model_dump() for p in req.existing_policies]}\n"
+            f"检索上下文(节选):\n{chr(10).join(ctx_docs[:3])}\n"
+            "请输出严格符合 schema 的 JSON。"
+        )
+        strategy_json = await self.llm.achat(STRATEGY_SYSTEM, user_prompt_strategy)
+
+        user_prompt_risk = (
+            f"投保人: {req.insured.model_dump()}\n财务: {req.finance.model_dump()}\n目标: {req.goals.model_dump()}\n"
+            f"策略草案(JSON):\n{strategy_json}\n"
+            "仅输出风控合并后的 risk_warnings JSON 数组。"
+        )
+        risk_json = await self.llm.achat(RISK_SYSTEM, user_prompt_risk)
+
+        user_prompt_review = (
+            f"策略草案(JSON):\n{strategy_json}\n"
+            f"风控(JSON):\n{risk_json}\n"
+            "请输出修订后的最终 JSON 对象。"
+        )
+        final_json = await self.llm.achat(REVIEW_SYSTEM, user_prompt_review)
+
+        return {"final_json": final_json, "strategy_json": strategy_json, "risk_json": risk_json, "ctx_docs": ctx_docs} 

@@ -6,6 +6,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, GenerationConfig
 from peft import PeftModel, PeftConfig
 
 from ..config import model_config
+import asyncio
 
 
 class LocalQwen:
@@ -48,4 +49,7 @@ class LocalQwen:
         # 简单截断：取assistant之后的内容
         if "<|assistant|>" in text:
             text = text.split("<|assistant|>", 1)[-1].strip()
-        return text 
+        return text
+
+    async def achat(self, system_prompt: str, user_prompt: str) -> str:
+        return await asyncio.to_thread(self.chat, system_prompt, user_prompt) 

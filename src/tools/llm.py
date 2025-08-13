@@ -15,6 +15,7 @@ from ..models.schemas import (
     PurchaseStep,
     RiskWarning,
 )
+import asyncio
 
 
 class LLMClient:
@@ -46,6 +47,10 @@ class LLMClient:
             return resp.choices[0].message.content or ""
         except Exception as e:  # pragma: no cover
             return f"[LLM Error] {e}"
+
+    async def agenerate_text(self, system_prompt: str, user_prompt: str) -> str:
+        # 若官方库无异步实现，退回线程池
+        return await asyncio.to_thread(self.generate_text, system_prompt, user_prompt)
 
 
 def _years_to_retirement(age: int, retire_age: int = 65) -> int:
@@ -200,4 +205,7 @@ class StrategyGenerator:
     def generate(self, req: UserRequest, context_docs: Optional[List[str]] = None) -> StrategyRecommendation:
         # 在有可用 LLM 时，可将 heuristic 输出作为结构提示，融合 LLM 文本增强
         base = heuristic_generate_strategy(req, context_docs)
-        return base 
+        return base
+
+    async def agenerate(self, req: UserRequest, context_docs: Optional[List[str]] = None) -> StrategyRecommendation:
+        return await asyncio.to_thread(self.generate, req, context_docs) 

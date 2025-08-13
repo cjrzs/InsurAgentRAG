@@ -3,6 +3,7 @@ from __future__ import annotations
 from .base_agent import BaseAgent
 from ..models.schemas import UserRequest, StrategyRecommendation, RiskWarning
 from ..tools.evaluator import assess_budget, assess_gaps
+import asyncio
 
 
 class RiskAgent(BaseAgent):
@@ -16,4 +17,7 @@ class RiskAgent(BaseAgent):
         for w in warnings:
             uniq[(w.segment, w.advice)] = w
         rec.risk_warnings = list(uniq.values())
-        return rec 
+        return rec
+
+    async def aact(self, req: UserRequest, rec: StrategyRecommendation) -> StrategyRecommendation:  # type: ignore[override]
+        return await asyncio.to_thread(self.act, req, rec) 
